@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BFS dan DFS - Peta Tanjungpinang</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        crossorigin=""
+    />
+</head>
+<body>
+    <div class="container">
+        <h1>Implementasi BFS dan DFS pada Peta Tanjungpinang</h1>
+
+        <form method="POST" class="form">
+            <div class="field">
+                <label>Lokasi Awal</label>
+                <select name="start" required>
+                    <option value="">-- pilih lokasi awal --</option>
+                    {% for node in nodes %}
+                        <option value="{{ node }}" {% if start == node %}selected{% endif %}>{{ node }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="field">
+                <label>Lokasi Tujuan</label>
+                <select name="goal" required>
+                    <option value="">-- pilih lokasi tujuan --</option>
+                    {% for node in nodes %}
+                        <option value="{{ node }}" {% if goal == node %}selected{% endif %}>{{ node }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="buttons">
+                <button type="submit" name="method" value="bfs">Proses BFS</button>
+                <button type="submit" name="method" value="dfs">Proses DFS</button>
+                <button type="submit" name="method" value="compare">Bandingkan Keduanya</button>
+            </div>
+        </form>
+
+        <div class="results">
+            {% if result_bfs %}
+            <div class="result-card blue">
+                <h2>Hasil BFS</h2>
+                <p><strong>Rute:</strong> {{ result_bfs.path | join(" → ") }}</p>
+                <p><strong>Total Bobot:</strong> {{ result_bfs.cost }} km</p>
+            </div>
+            {% endif %}
+
+            {% if result_dfs %}
+            <div class="result-card red">
+                <h2>Hasil DFS</h2>
+                <p><strong>Rute:</strong> {{ result_dfs.path | join(" → ") }}</p>
+                <p><strong>Total Bobot:</strong> {{ result_dfs.cost }} km</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div id="map"></div>
+    </div>
+
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        crossorigin=""
+    ></script>
+
+    <div
+        id="route-data"
+        data-map-center='{{ map_center | tojson }}'
+        data-coords='{{ coords | tojson }}'
+        data-bfs='{{ bfs_coords | tojson }}'
+        data-dfs='{{ dfs_coords | tojson }}'
+    ></div>
+
+    <script>
+        const routeDataElement = document.getElementById("route-data");
+
+        const mapCenter = JSON.parse(routeDataElement.dataset.mapCenter);
+        const coordsData = JSON.parse(routeDataElement.dataset.coords);
+        const bfsRoute = JSON.parse(routeDataElement.dataset.bfs);
+        const dfsRoute = JSON.parse(routeDataElement.dataset.dfs);
+
+        const map = L.map("map").setView(mapCenter, 13);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: "© OpenStreetMap contributors"
+        }).addTo(map);
+
+        const markerPoints = [];
+        Object.entries(coordsData).forEach(([name, coord]) => {
+            markerPoints.push(coord);
+            L.marker(coord).addTo(map).bindPopup(name);
+        });
+
+        let bounds = L.latLngBounds(markerPoints);
+
+        if (bfsRoute.length > 1) {
+            const bfsLine = L.polyline(bfsRoute, {
+                color: "blue",
+                weight: 5,
+                opacity: 0.9
+            }).addTo(map);
+            bounds = bounds.extend(bfsLine.getBounds());
+        }
+
+        if (dfsRoute.length > 1) {
+            const dfsLine = L.polyline(dfsRoute, {
+                color: "red",
+                weight: 5,
+                dashArray: "8 8",
+                opacity: 0.9
+            }).addTo(map);
+            bounds = bounds.extend(dfsLine.getBounds());
+        }
+
+        map.fitBounds(bounds, { padding: [20, 20] });
+    </script>
+</body>
+</html>
